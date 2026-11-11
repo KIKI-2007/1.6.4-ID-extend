@@ -1,0 +1,15 @@
+[
+  {
+    "modid": "betteridextender",
+    "name": "Better ID Extender",
+    "description": "A compatibility-focused ID diagnostics and registry extension project for Minecraft 1.6.4.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/KIKI-2007/1.6.4-ID-extend",
+    "authorList": ["KIKI-2007"],
+    "credits": "Community compatibility research",
+    "logoFile": "",
+    "screenshots": [],
+    "dependencies": []
+  }
+]
