@@ -1,0 +1,9 @@
+{
+  "name": "Better ID Extender 1.6.4",
+  "image": "mcr.microsoft.com/devcontainers/java:1-8",
+  "customizations": {
+    "vscode": {
+      "extensions": ["vscjava.vscode-java-pack"]
+    }
+  }
+}
