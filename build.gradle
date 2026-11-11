@@ -1,0 +1,47 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        maven { url = "https://maven.minecraftforge.net/" }
+        maven { url = "https://files.minecraftforge.net/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:1.2-SNAPSHOT'
+    }
+}
+
+apply plugin: 'forge'
+
+version = project.hasProperty('mod_version') ? project.mod_version : '0.1.0'
+group = 'com.zxl.betterid'
+archivesBaseName = 'BetterIDExtender'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+minecraft {
+    version = "1.6.4-9.11.1.964"
+    runDir = "run"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", "1.6.4"
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': project.version, 'mcversion': '1.6.4'
+    }
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            'FMLCorePlugin': 'com.zxl.betterid.BetterIDLoadingPlugin',
+            'FMLCorePluginContainsFMLMod': 'true',
+            'Implementation-Title': 'Better ID Extender',
+            'Implementation-Version': project.version
+        )
+    }
+}
