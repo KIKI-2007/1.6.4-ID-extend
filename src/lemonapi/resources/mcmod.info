@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "lemonapi",
+    "name": "Lemon API",
+    "description": "Shared compatibility and ID allocation API for legacy Minecraft 1.6.4 Forge mods.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/KIKI-2007/1.6.4-ID-extend",
+    "authorList": ["KIKI-2007"],
+    "credits": "Lemon API",
+    "dependencies": []
+  }
+]

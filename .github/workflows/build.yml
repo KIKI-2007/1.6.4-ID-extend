@@ -1,4 +1,4 @@
-name: Build Better ID Extender
+name: Build Better ID Extender and Lemon API
 
 on:
   push:
@@ -97,13 +97,38 @@ jobs:
               print("No mc_versions metadata file found in resolved Gradle cache JARs.")
           PY
 
-      - name: Build Forge 1.6.4 mod
+      - name: Build Forge 1.6.4 mods
         shell: bash
         run: |
           set -o pipefail
-          gradle --no-daemon --stacktrace clean build \
+          gradle --no-daemon --stacktrace clean build lemonApiJar \
             -x getAssetsIndex -x getAssets -x downloadClient -x downloadServer \
             2>&1 | tee forge164-build.log
+
+      - name: Verify Better ID Extender JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_file="build/libs/BetterIDExtender-0.2.0.jar"
+          test -f "$jar_file"
+          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePlugin: com.zxl.betterid.BetterIDLoadingPlugin'
+          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePluginContainsFMLMod: true'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/BetterIDMod.class'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/transformer/BetterIDTransformer.class'
+          javap -classpath "$jar_file" -verbose com.zxl.betterid.BetterIDMod | grep -F 'major version: 51'
+          unzip -p "$jar_file" mcmod.info | grep -F 'required-after:lemonapi'
+
+      - name: Verify Lemon API prerequisite JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          api_jar="build/libs/LemonAPI-0.1.0.jar"
+          test -f "$api_jar"
+          jar tf "$api_jar" | grep -Fx 'com/zxl/lemonapi/LemonApiMod.class'
+          jar tf "$api_jar" | grep -Fx 'com/zxl/lemonapi/LemonAPI.class'
+          jar tf "$api_jar" | grep -Fx 'com/zxl/lemonapi/IdAllocator.class'
+          unzip -p "$api_jar" mcmod.info | grep -F '"modid": "lemonapi"'
+          javap -classpath "$api_jar" -verbose com.zxl.lemonapi.LemonAPI | grep -F 'major version: 51'
 
       - name: Upload build diagnostics
         if: always()
@@ -115,24 +140,11 @@ jobs:
             build/reports/**
           if-no-files-found: warn
 
-      - name: Verify Coremod JAR
-        shell: bash
-        run: |
-          set -euo pipefail
-          jar_file="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)"
-          test -n "$jar_file"
-          echo "Checking $jar_file"
-          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePlugin: com.zxl.betterid.BetterIDLoadingPlugin'
-          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePluginContainsFMLMod: true'
-          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/BetterIDLoadingPlugin.class'
-          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/transformer/BetterIDTransformer.class'
-          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/registry/IdRangeAllocator.class'
-          javap -classpath "$jar_file" -verbose com.zxl.betterid.BetterIDLoadingPlugin | grep -E 'major version: (50|51)'
-          echo "Coremod manifest and expected class files verified."
-
-      - name: Upload JAR artifact
+      - name: Upload mod JARs
         uses: actions/upload-artifact@v4
         with:
-          name: BetterIDExtender-1.6.4-test
-          path: build/libs/*.jar
+          name: BetterIDExtender-1.6.4-with-LemonAPI
+          path: |
+            build/libs/BetterIDExtender-*.jar
+            build/libs/LemonAPI-*.jar
           if-no-files-found: error

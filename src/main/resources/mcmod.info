@@ -2,7 +2,7 @@
   {
     "modid": "betteridextender",
     "name": "Better ID Extender",
-    "description": "A compatibility-focused ID diagnostics and registry extension project for Minecraft 1.6.4.",
+    "description": "A compatibility-focused ID diagnostics and registry extension project for Minecraft 1.6.4. Requires Lemon API.",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "https://github.com/KIKI-2007/1.6.4-ID-extend",
@@ -10,6 +10,6 @@
     "credits": "Community compatibility research",
     "logoFile": "",
     "screenshots": [],
-    "dependencies": []
+    "dependencies": ["required-after:lemonapi@[0.1.0,)"]
   }
 ]

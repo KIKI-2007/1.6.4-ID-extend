@@ -5,14 +5,15 @@ buildscript {
         maven { url = "https://files.minecraftforge.net/maven" }
     }
     dependencies {
-        // ForgeGradle 1.0 explicitly supports Forge 1.6.4 builds 960-964.
+        // ForgeGradle 1.0 is the compatible toolchain for Forge 1.6.4 build 964.
         classpath 'net.minecraftforge.gradle:ForgeGradle:1.0-SNAPSHOT'
     }
 }
 
 apply plugin: 'forge'
 
-version = project.hasProperty('mod_version') ? project.mod_version : '0.1.0'
+version = project.hasProperty('mod_version') ? project.mod_version : '0.2.0'
+def lemonApiVersion = project.hasProperty('lemon_api_version') ? project.lemon_api_version : '0.1.0'
 group = 'com.zxl.betterid'
 archivesBaseName = 'BetterIDExtender'
 
@@ -22,6 +23,20 @@ targetCompatibility = 1.7
 minecraft {
     version = "1.6.4-9.11.1.964"
 }
+
+sourceSets {
+    lemonApi {
+        java.srcDir 'src/lemonapi/java'
+        resources.srcDir 'src/lemonapi/resources'
+        compileClasspath += configurations.compile
+    }
+    main {
+        // Compile against Lemon API but do not bundle its classes in this JAR.
+        compileClasspath += sourceSets.lemonApi.output
+    }
+}
+
+compileJava.dependsOn compileLemonApiJava
 
 processResources {
     inputs.property "version", project.version
@@ -35,6 +50,18 @@ processResources {
     }
 }
 
+processLemonApiResources {
+    inputs.property "version", lemonApiVersion
+    inputs.property "mcversion", "1.6.4"
+    from(sourceSets.lemonApi.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': lemonApiVersion, 'mcversion': '1.6.4'
+    }
+    from(sourceSets.lemonApi.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
 jar {
     manifest {
         attributes(
@@ -44,4 +71,19 @@ jar {
             'Implementation-Version': project.version
         )
     }
+}
+
+task lemonApiJar(type: Jar, dependsOn: lemonApiClasses) {
+    from sourceSets.lemonApi.output
+    archiveName = "LemonAPI-${lemonApiVersion}.jar"
+    manifest {
+        attributes(
+            'Implementation-Title': 'Lemon API',
+            'Implementation-Version': lemonApiVersion
+        )
+    }
+}
+
+artifacts {
+    archives lemonApiJar
 }

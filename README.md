@@ -3,46 +3,65 @@
 A compatibility-focused project for diagnosing and managing legacy mod ID allocation on Minecraft 1.6.4 Forge.
 
 - Minecraft: 1.6.4
-- Baseline Forge target: 9.11.1.964 (verify against the exact modpack)
+- Forge: 9.11.1.964
 - Java source/target: 7
-- Coremod entry point: enabled
-- Current status: scaffold / diagnostic-only
+- Build toolchain: ForgeGradle 1.0 / Gradle 2.14.1
+- Required prerequisite: Lemon API 0.1.0 or newer
 
-## Important compatibility limits
+## Downloads and installation
 
-This project does not currently provide unlimited block IDs or claim that every registry can use an arbitrary expanded range.
+The build produces two separate mods:
+
+1. **LemonAPI-0.1.0.jar** — prerequisite library. Install this first (or alongside the main mod).
+2. **BetterIDExtender-0.2.0.jar** — the Coremod and FML mod. It declares a required dependency on `lemonapi`.
+
+Both JARs belong in the same Minecraft 1.6.4 Forge `mods` directory. Do not merge the JARs or extract their contents into one another.
+
+## What Lemon API provides
+
+Lemon API is a small, separately loadable compatibility library for legacy Forge mods. Its initial API includes:
+
+- Stable mod ID `lemonapi` and API level reporting.
+- Minecraft-version compatibility metadata.
+- Inclusive ID ranges (`IdRange`).
+- A thread-safe, registry-neutral in-memory ID reservation helper (`IdAllocator`).
+- A stable API entry point (`LemonAPI`) for dependent mods.
+
+Example:
+
+```java
+IdAllocator allocator = LemonAPI.createIdAllocator(2000, 2099);
+int id = allocator.allocateFirstFree("examplemod");
+```
+
+Reservations are process-local helper data only. Lemon API does not currently hook Forge registration, remap existing mod IDs, patch Anvil storage, or make IDs above the vanilla block storage limit safe.
+
+## Current Better ID Extender status
+
+- `BetterIDLoadingPlugin`: Forge 1.6.4 Coremod entry point.
+- `BetterIDTransformer`: diagnostic-only ASM transformer; returns original class bytes.
+- `BetterIDMod`: declares and checks the required Lemon API dependency during pre-initialization.
+- `IdRangeAllocator`: legacy registry-neutral helper retained in the main mod source.
+- GitHub Actions: builds and structurally verifies both JARs.
+
+**This is still an early development build, not a finished ID-expansion implementation.** No live Minecraft integration test is claimed.
+
+## Compatibility limits
 
 Minecraft 1.6.4 Anvil chunk storage represents block IDs using the legacy 12-bit block-ID layout (8 low bits plus 4 high bits), giving a persistent block-ID ceiling of 4095 in that format. Increasing an in-memory array or registry alone does not make larger IDs safe to save, load, or exchange over the network.
 
 Item IDs and other registries have separate serialization, mapping, and compatibility constraints. They must be audited independently. True expansion beyond the world-format limit would require a deliberate save-format and network compatibility design, plus migration and interoperability tests.
 
-## Current source contents
-
-- BetterIDLoadingPlugin: Forge 1.6.4 coremod entry point.
-- BetterIDTransformer: diagnostic-only ASM transformer; returns original class bytes.
-- IdRangeAllocator: registry-neutral ID reservation utility. It is not yet wired into Forge registration.
-- BetterIDConfig: minimal Java properties configuration.
-- GitHub Actions workflow: attempts a Java 8 / Gradle 2.14.1 build.
-
 ## Build
 
-The project uses the legacy ForgeGradle 1.2 toolchain. That toolchain is old and may require repository or Gradle-resolution adjustments as upstream services change.
+With Java 8 and network access:
 
-From a Java 8 environment with network access, run:
+```sh
+gradle --no-daemon clean build lemonApiJar
+```
 
-    gradle --no-daemon clean build
-
-The output JAR, if legacy dependencies resolve and compilation succeeds, is written to build/libs/.
-
-## Development roadmap
-
-1. Verify the exact Forge 1.6.4 and Java runtime baseline.
-2. Audit block, item, biome, potion, enchantment, entity and Tile Entity registration paths independently.
-3. Add collision detection and deterministic remapping where the target registry and save format permit it.
-4. Add ASM patches only after inspecting exact target bytecode and proving patch invariants.
-5. Test fresh worlds, existing worlds, multiplayer handshakes, and mixed-mod environments.
-6. Design any beyond-4095 block-ID support as an explicit alternate save/network format rather than pretending the vanilla Anvil format supports it.
+The output JARs are written to `build/libs/`.
 
 ## Safety
 
-Do not use an experimental build on an important world without a backup. This initial commit is a development scaffold, not a finished ID-expansion release.
+Back up worlds before testing experimental builds. Do not use this development build on an important save without a separate backup.
