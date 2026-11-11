@@ -6,62 +6,73 @@ A compatibility-focused project for diagnosing and managing legacy mod ID alloca
 - Forge: 9.11.1.964
 - Java source/target: 7
 - Build toolchain: ForgeGradle 1.0 / Gradle 2.14.1
-- Required prerequisite: Lemon API 0.1.0 or newer
 
-## Downloads and installation
+## Mod architecture and required dependencies
 
-The build produces two separate mods:
+The project builds three independent Forge mods:
 
-1. **LemonAPI-0.1.0.jar** — prerequisite library. Install this first (or alongside the main mod).
-2. **BetterIDExtender-0.2.0.jar** — the Coremod and FML mod. It declares a required dependency on `lemonapi`.
+1. **LemonAPI-0.1.0.jar** — base compatibility API.
+2. **LemonsGUI-0.1.0.jar** — reusable GUI framework; requires Lemon API.
+3. **BetterIDExtender-0.3.0.jar** — main Coremod and FML mod; requires both Lemon API and Lemon's GUI.
 
-Both JARs belong in the same Minecraft 1.6.4 Forge `mods` directory. Do not merge the JARs or extract their contents into one another.
+Dependency graph:
 
-## What Lemon API provides
-
-Lemon API is a small, separately loadable compatibility library for legacy Forge mods. Its initial API includes:
-
-- Stable mod ID `lemonapi` and API level reporting.
-- Minecraft-version compatibility metadata.
-- Inclusive ID ranges (`IdRange`).
-- A thread-safe, registry-neutral in-memory ID reservation helper (`IdAllocator`).
-- A stable API entry point (`LemonAPI`) for dependent mods.
-
-Example:
-
-```java
-IdAllocator allocator = LemonAPI.createIdAllocator(2000, 2099);
-int id = allocator.allocateFirstFree("examplemod");
+```text
+Lemon API
+   |
+   v
+Lemon's GUI
+   |
+   v
+Better ID Extender (also declares Lemon API directly)
 ```
 
-Reservations are process-local helper data only. Lemon API does not currently hook Forge registration, remap existing mod IDs, patch Anvil storage, or make IDs above the vanilla block storage limit safe.
+Install all three JARs into the Minecraft 1.6.4 Forge `mods` directory. Do not merge the JARs or extract their contents.
 
-## Current Better ID Extender status
+## Keyboard shortcuts
+
+- **F7** — open the Better ID Extender dashboard.
+- **F8** — open the Lemon's GUI welcome screen.
+
+The shortcuts are client-side only. The server-side proxies do not load Minecraft client GUI classes.
+
+## Lemon API
+
+Lemon API provides stable mod/API version metadata, Minecraft version metadata, inclusive ID ranges (`IdRange`), and a thread-safe in-memory ID reservation helper (`IdAllocator`). Reservations are registry-neutral and process-local.
+
+## Lemon's GUI API
+
+The standalone GUI library provides:
+
+- `LemonGuiAPI`: GUI API version checks and screen-opening helper.
+- `LemonsGuiScreen`: reusable base screen, framed panel helpers, title rendering, and standard Done button.
+- A client-only welcome screen and F8 shortcut to verify the library is loaded.
+
+Other mods can depend on `lemonsgui` and extend `LemonsGuiScreen` without bundling Lemon's GUI classes.
+
+## Better ID Extender dashboard
+
+The F7 dashboard is built on Lemon's GUI and currently has Overview, ID ranges, and Diagnostics tabs. It reports the two prerequisite versions and explicitly identifies which registry functionality is not active yet.
+
+## Current implementation limits
 
 - `BetterIDLoadingPlugin`: Forge 1.6.4 Coremod entry point.
 - `BetterIDTransformer`: diagnostic-only ASM transformer; returns original class bytes.
-- `BetterIDMod`: declares and checks the required Lemon API dependency during pre-initialization.
-- `IdRangeAllocator`: legacy registry-neutral helper retained in the main mod source.
-- GitHub Actions: builds and structurally verifies both JARs.
+- The ID allocator remains in-memory and is not connected to Forge's real block/item registration pipeline.
+- The dashboard is an initial status/configuration UI; it does not claim to expand registries.
 
-**This is still an early development build, not a finished ID-expansion implementation.** No live Minecraft integration test is claimed.
-
-## Compatibility limits
-
-Minecraft 1.6.4 Anvil chunk storage represents block IDs using the legacy 12-bit block-ID layout (8 low bits plus 4 high bits), giving a persistent block-ID ceiling of 4095 in that format. Increasing an in-memory array or registry alone does not make larger IDs safe to save, load, or exchange over the network.
-
-Item IDs and other registries have separate serialization, mapping, and compatibility constraints. They must be audited independently. True expansion beyond the world-format limit would require a deliberate save-format and network compatibility design, plus migration and interoperability tests.
+Minecraft 1.6.4 Anvil chunk storage uses a legacy 12-bit block-ID layout, so the persistent block-ID ceiling is 4095 in that format. Raising an in-memory registry limit alone does not make larger IDs safe to save, load, or exchange over the network. True expansion requires a save-format and network compatibility design, migration, and integration testing.
 
 ## Build
 
 With Java 8 and network access:
 
 ```sh
-gradle --no-daemon clean build lemonApiJar
+gradle --no-daemon clean build lemonApiJar lemonsGuiJar
 ```
 
-The output JARs are written to `build/libs/`.
+The three output JARs are written to `build/libs/`.
 
-## Safety
+## Testing and safety
 
-Back up worlds before testing experimental builds. Do not use this development build on an important save without a separate backup.
+GitHub Actions checks compilation, mod metadata, dependency declarations, class presence, and Java 7 bytecode compatibility. A successful CI build is not a substitute for launching the full modpack in Minecraft. Back up worlds before testing experimental builds.

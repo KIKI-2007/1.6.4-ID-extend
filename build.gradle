@@ -12,8 +12,9 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = project.hasProperty('mod_version') ? project.mod_version : '0.2.0'
+version = project.hasProperty('mod_version') ? project.mod_version : '0.3.0'
 def lemonApiVersion = project.hasProperty('lemon_api_version') ? project.lemon_api_version : '0.1.0'
+def lemonsGuiVersion = project.hasProperty('lemons_gui_version') ? project.lemons_gui_version : '0.1.0'
 group = 'com.zxl.betterid'
 archivesBaseName = 'BetterIDExtender'
 
@@ -30,13 +31,19 @@ sourceSets {
         resources.srcDir 'src/lemonapi/resources'
         compileClasspath += configurations.compile
     }
+    lemonsGui {
+        java.srcDir 'src/lemonsgui/java'
+        resources.srcDir 'src/lemonsgui/resources'
+        compileClasspath += configurations.compile + sourceSets.lemonApi.output
+    }
     main {
-        // Compile against Lemon API but do not bundle its classes in this JAR.
-        compileClasspath += sourceSets.lemonApi.output
+        // Compile against both prerequisite APIs without bundling either library.
+        compileClasspath += sourceSets.lemonApi.output + sourceSets.lemonsGui.output
     }
 }
 
-compileJava.dependsOn compileLemonApiJava
+compileLemonsGuiJava.dependsOn compileLemonApiJava
+compileJava.dependsOn compileLemonsGuiJava
 
 processResources {
     inputs.property "version", project.version
@@ -58,6 +65,18 @@ processLemonApiResources {
         expand 'version': lemonApiVersion, 'mcversion': '1.6.4'
     }
     from(sourceSets.lemonApi.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+processLemonsGuiResources {
+    inputs.property "version", lemonsGuiVersion
+    inputs.property "mcversion", "1.6.4"
+    from(sourceSets.lemonsGui.resources.srcDirs) {
+        include 'mcmod.info'
+        expand 'version': lemonsGuiVersion, 'mcversion': '1.6.4'
+    }
+    from(sourceSets.lemonsGui.resources.srcDirs) {
         exclude 'mcmod.info'
     }
 }
@@ -84,6 +103,18 @@ task lemonApiJar(type: Jar, dependsOn: lemonApiClasses) {
     }
 }
 
+task lemonsGuiJar(type: Jar, dependsOn: lemonsGuiClasses) {
+    from sourceSets.lemonsGui.output
+    archiveName = "LemonsGUI-${lemonsGuiVersion}.jar"
+    manifest {
+        attributes(
+            'Implementation-Title': "Lemon's GUI",
+            'Implementation-Version': lemonsGuiVersion
+        )
+    }
+}
+
 artifacts {
     archives lemonApiJar
+    archives lemonsGuiJar
 }

@@ -1,0 +1,13 @@
+[
+  {
+    "modid": "lemonsgui",
+    "name": "Lemon's GUI",
+    "description": "A reusable in-game GUI framework for legacy Minecraft 1.6.4 Forge mods. Requires Lemon API.",
+    "version": "${version}",
+    "mcversion": "${mcversion}",
+    "url": "https://github.com/KIKI-2007/1.6.4-ID-extend",
+    "authorList": ["KIKI-2007"],
+    "credits": "Lemon API",
+    "dependencies": ["required-after:lemonapi@[0.1.0,)"]
+  }
+]

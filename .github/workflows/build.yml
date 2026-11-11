@@ -1,4 +1,4 @@
-name: Build Better ID Extender and Lemon API
+name: Build Better ID Extender, Lemon API and Lemon's GUI
 
 on:
   push:
@@ -101,7 +101,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          gradle --no-daemon --stacktrace clean build lemonApiJar \
+          gradle --no-daemon --stacktrace clean build lemonApiJar lemonsGuiJar \
             -x getAssetsIndex -x getAssets -x downloadClient -x downloadServer \
             2>&1 | tee forge164-build.log
 
@@ -109,14 +109,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jar_file="build/libs/BetterIDExtender-0.2.0.jar"
+          jar_file="build/libs/BetterIDExtender-0.3.0.jar"
           test -f "$jar_file"
           unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePlugin: com.zxl.betterid.BetterIDLoadingPlugin'
           unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePluginContainsFMLMod: true'
           jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/BetterIDMod.class'
-          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/transformer/BetterIDTransformer.class'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/client/gui/BetterIDGuiScreen.class'
+          unzip -p "$jar_file" mcmod.info | grep -F 'required-after:lemonsgui'
           javap -classpath "$jar_file" -verbose com.zxl.betterid.BetterIDMod | grep -F 'major version: 51'
-          unzip -p "$jar_file" mcmod.info | grep -F 'required-after:lemonapi'
 
       - name: Verify Lemon API prerequisite JAR
         shell: bash
@@ -129,6 +129,18 @@ jobs:
           jar tf "$api_jar" | grep -Fx 'com/zxl/lemonapi/IdAllocator.class'
           unzip -p "$api_jar" mcmod.info | grep -F '"modid": "lemonapi"'
           javap -classpath "$api_jar" -verbose com.zxl.lemonapi.LemonAPI | grep -F 'major version: 51'
+
+      - name: Verify Lemon's GUI prerequisite JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          gui_jar="build/libs/LemonsGUI-0.1.0.jar"
+          test -f "$gui_jar"
+          jar tf "$gui_jar" | grep -Fx 'com/zxl/lemonsgui/LemonsGuiMod.class'
+          jar tf "$gui_jar" | grep -Fx 'com/zxl/lemonsgui/LemonGuiAPI.class'
+          jar tf "$gui_jar" | grep -Fx 'com/zxl/lemonsgui/LemonsGuiScreen.class'
+          unzip -p "$gui_jar" mcmod.info | grep -F '"modid": "lemonsgui"'
+          javap -classpath "$gui_jar" -verbose com.zxl.lemonsgui.LemonGuiAPI | grep -F 'major version: 51'
 
       - name: Upload build diagnostics
         if: always()
@@ -143,8 +155,9 @@ jobs:
       - name: Upload mod JARs
         uses: actions/upload-artifact@v4
         with:
-          name: BetterIDExtender-1.6.4-with-LemonAPI
+          name: BetterIDExtender-1.6.4-with-Lemon-libraries
           path: |
             build/libs/BetterIDExtender-*.jar
             build/libs/LemonAPI-*.jar
+            build/libs/LemonsGUI-*.jar
           if-no-files-found: error
