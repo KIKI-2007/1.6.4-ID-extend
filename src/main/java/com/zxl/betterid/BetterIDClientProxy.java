@@ -1,7 +1,7 @@
 package com.zxl.betterid;
 
 import com.zxl.betterid.client.BetterIDKeyHandler;
-import cpw.mods.fml.client.registry.TickRegistry;
+import cpw.mods.fml.common.registry.TickRegistry;
 import cpw.mods.fml.relauncher.Side;
 
 /** Client-only initialization for the Better ID Extender GUI shortcut. */
