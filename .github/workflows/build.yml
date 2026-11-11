@@ -61,6 +61,42 @@ jobs:
               print("Seeded %s cache: %s (%d bytes, SHA-1 %s)" % (kind, destination, len(data), actual))
           PY
 
+      - name: Resolve ForgeGradle 1.0 project metadata
+        run: gradle --no-daemon help
+
+      - name: Inspect legacy checksum metadata
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import glob
+          import os
+          import zipfile
+
+          roots = [
+              os.path.join(os.path.expanduser("~"), ".gradle", "caches", "modules-2", "files-2.1"),
+              os.path.join(os.path.expanduser("~"), ".gradle", "caches", "minecraft"),
+          ]
+          found = False
+          for root in roots:
+              for path in glob.glob(root + "/**/*.jar", recursive=True):
+                  try:
+                      with zipfile.ZipFile(path) as archive:
+                          for name in archive.namelist():
+                              if "mc_versions" in name.lower():
+                                  found = True
+                                  print("FOUND", path, "=>", name)
+                                  if name.lower().endswith("mc_versions.cfg"):
+                                      content = archive.read(name).decode("utf-8", "replace")
+                                      lines = content.splitlines()
+                                      for index, line in enumerate(lines):
+                                          if line.strip() == "[1.6.4]":
+                                              print("\n".join(lines[index:index+12]))
+                  except (zipfile.BadZipFile, OSError):
+                      pass
+          if not found:
+              print("No mc_versions metadata file found in resolved Gradle cache JARs.")
+          PY
+
       - name: Build Forge 1.6.4 mod
         run: gradle --no-daemon clean build
 
