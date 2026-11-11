@@ -98,7 +98,22 @@ jobs:
           PY
 
       - name: Build Forge 1.6.4 mod
-        run: gradle --no-daemon clean build -x downloadClient -x downloadServer
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace clean build \
+            -x getAssetsIndex -x getAssets -x downloadClient -x downloadServer \
+            2>&1 | tee forge164-build.log
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Forge-1.6.4-build-diagnostics
+          path: |
+            forge164-build.log
+            build/reports/**
+          if-no-files-found: warn
 
       - name: Verify Coremod JAR
         shell: bash
