@@ -25,6 +25,42 @@ jobs:
         with:
           gradle-version: '2.14.1'
 
+      - name: Seed legacy Minecraft 1.6.4 client and server cache
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import urllib.request
+
+          manifest_url = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json"
+          with urllib.request.urlopen(manifest_url, timeout=60) as response:
+              manifest = json.load(response)
+          version_entry = next(item for item in manifest["versions"] if item["id"] == "1.6.4")
+          with urllib.request.urlopen(version_entry["url"], timeout=60) as response:
+              version = json.load(response)
+
+          cache_root = os.path.join(os.path.expanduser("~"), ".gradle", "caches", "minecraft", "net", "minecraft")
+          destinations = {
+              "client": os.path.join(cache_root, "minecraft", "1.6.4", "minecraft-1.6.4.jar"),
+              "server": os.path.join(cache_root, "minecraft_server", "1.6.4", "minecraft_server-1.6.4.jar"),
+          }
+          for kind, destination in destinations.items():
+              download = version.get("downloads", {}).get(kind)
+              if not download:
+                  raise SystemExit("Mojang metadata has no %s download for Minecraft 1.6.4" % kind)
+              with urllib.request.urlopen(download["url"], timeout=120) as response:
+                  data = response.read()
+              actual = hashlib.sha1(data).hexdigest()
+              if actual.lower() != download["sha1"].lower():
+                  raise SystemExit("%s JAR SHA-1 mismatch: %s" % (kind, actual))
+              os.makedirs(os.path.dirname(destination), exist_ok=True)
+              with open(destination, "wb") as output:
+                  output.write(data)
+              print("Seeded %s cache: %s (%d bytes, SHA-1 %s)" % (kind, destination, len(data), actual))
+          PY
+
       - name: Build Forge 1.6.4 mod
         run: gradle --no-daemon clean build
 
