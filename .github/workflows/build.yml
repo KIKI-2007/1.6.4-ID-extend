@@ -13,20 +13,39 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
       - name: Set up Java 8
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '8'
-      - name: Set up Gradle
+
+      - name: Set up Gradle 2.14.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '2.14.1'
-      - name: Build
+
+      - name: Build Forge 1.6.4 mod
         run: gradle --no-daemon clean build
+
+      - name: Verify Coremod JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar_file="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' | head -n 1)"
+          test -n "$jar_file"
+          echo "Checking $jar_file"
+          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePlugin: com.zxl.betterid.BetterIDLoadingPlugin'
+          unzip -p "$jar_file" META-INF/MANIFEST.MF | tr -d '\r' | grep -F 'FMLCorePluginContainsFMLMod: true'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/BetterIDLoadingPlugin.class'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/transformer/BetterIDTransformer.class'
+          jar tf "$jar_file" | grep -Fx 'com/zxl/betterid/registry/IdRangeAllocator.class'
+          javap -classpath "$jar_file" -verbose com.zxl.betterid.BetterIDLoadingPlugin | grep -E 'major version: (50|51)'
+          echo "Coremod manifest and expected class files verified."
+
       - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BetterIDExtender-1.6.4
+          name: BetterIDExtender-1.6.4-test
           path: build/libs/*.jar
           if-no-files-found: error
