@@ -98,7 +98,7 @@ jobs:
           PY
 
       - name: Build Forge 1.6.4 mod
-        run: gradle --no-daemon clean build
+        run: gradle --no-daemon clean build -x downloadClient -x downloadServer
 
       - name: Verify Coremod JAR
         shell: bash
